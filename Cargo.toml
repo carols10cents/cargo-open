@@ -13,3 +13,4 @@ name = "cargo-open"
 
 [dependencies]
 clap = "*"
+cargo = "*"

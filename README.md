@@ -53,6 +53,18 @@ To get around this, either follow the Installation and Usage instructions above 
 
     ./target/release/cargo-open open whatever
 
+# TODO
+
+If you'd like to help with any of these and they're not clear, please ask! They're written mostly for my own benefit.
+
+* Check for the 3 env vars in order
+* Add tests
+  * 3 env vars, no env vars
+  * different kinds of crate installation -- *, version, github, local path, local override
+  * crate not yet downloaded
+  * dependencies of dependencies
+  * multirust
+
 # License
 
 `cargo open` is primarily distributed under the terms of both the MIT license and the Apache License (Version 2.0).

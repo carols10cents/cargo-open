@@ -1,7 +1,11 @@
 #[macro_use]
 extern crate clap;
+extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
+use cargo::core::{Resolve, SourceId, PackageId};
+
+use std::path::{Path, PathBuf};
 
 fn main() {
     let matches = App::new("cargo-open")
@@ -21,5 +25,33 @@ fn main() {
         .settings(&[AppSettings::SubcommandRequired])
         .get_matches();
 
-    println!("Using crate name: {}", matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap());
+    let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
+    println!("Using crate name: {}", crate_name);
+
+    let lock_path = "Cargo.lock";
+    let lock_path = Path::new(&lock_path);
+    let lock_path_buf = absolutize(lock_path.to_path_buf());
+    let lock_path = lock_path_buf.as_path();
+
+    let proj_dir  = lock_path.parent().unwrap(); // TODO: check for None
+    let src_id = SourceId::for_path(&proj_dir).unwrap();
+    println!("src_id = {:?}", src_id);
+
+    let resolved = cargo::ops::load_lockfile(&lock_path, &src_id).unwrap().expect("Lock file not found.");
+
+
+    let pkgid = resolved.query(crate_name).ok().unwrap();
+
+
+    println!("pkgid = {:?}", pkgid);
+    println!("pkgid.source_id() = {:?}", pkgid.source_id());
+
+}
+
+fn absolutize(pb: PathBuf) -> PathBuf {
+    if pb.as_path().is_absolute() {
+        pb
+    } else {
+        std::env::current_dir().unwrap().join(&pb.as_path()).clone()
+    }
 }
