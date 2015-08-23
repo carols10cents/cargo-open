@@ -1,6 +1,6 @@
 [package]
 name = "cargo-open"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Carol (Nichols || Goulding) <carol.nichols@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/carols10cents/cargo-open"
@@ -10,3 +10,6 @@ description = "A third-party cargo extension to allow you to open a dependent cr
 
 [[bin]]
 name = "cargo-open"
+
+[dependencies]
+clap = "*"

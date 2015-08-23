@@ -1,4 +1,26 @@
 [root]
 name = "cargo-open"
-version = "0.1.0"
+version = "0.2.0"
+dependencies = [
+ "clap 1.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ansi_term"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "clap"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "ansi_term 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "strsim 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "strsim"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
