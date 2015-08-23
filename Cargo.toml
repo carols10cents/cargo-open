@@ -7,3 +7,6 @@ repository = "https://github.com/carols10cents/cargo-open"
 homepage = "https://github.com/carols10cents/cargo-open"
 license = "MIT/Apache-2.0"
 description = "A third-party cargo extension to allow you to open a dependent crate in your $EDITOR"
+
+[[bin]]
+name = "cargo-open"
