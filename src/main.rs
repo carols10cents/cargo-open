@@ -3,7 +3,7 @@ extern crate clap;
 extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
-use cargo::core::{Resolve, SourceId, PackageId};
+use cargo::core::SourceId;
 use cargo::util::hex;
 
 use std::env;
