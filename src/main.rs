@@ -4,7 +4,7 @@ extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
 use cargo::core::SourceId;
-use cargo::util::hex;
+use cargo::util::{hex, CargoResult};
 
 use std::env;
 use std::path::{Path, PathBuf};
@@ -27,15 +27,22 @@ fn main() {
         .settings(&[AppSettings::SubcommandRequired])
         .get_matches();
 
+    // Ok to use unwrap here because clap will handle argument errors
     let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
-    println!("Using crate name: {}", crate_name);
 
+    match cargo_open(crate_name) {
+        Ok(()) => {},
+        Err(why) => panic!("{}", why),
+    }
+}
+
+fn cargo_open(crate_name: &str) -> CargoResult<()> {
     let lock_path = "Cargo.lock";
     let lock_path = Path::new(&lock_path);
     let lock_path_buf = absolutize(lock_path.to_path_buf());
     let lock_path = lock_path_buf.as_path();
 
-    let proj_dir  = lock_path.parent().unwrap(); // TODO: check for None
+    let proj_dir = lock_path.parent().unwrap(); // TODO: check for None
     let src_id = SourceId::for_path(&proj_dir).unwrap();
     println!("src_id = {:?}", src_id);
 
@@ -71,6 +78,7 @@ fn main() {
     let open_path = home_path.join("registry").join("src").join(&part).join(&dest);
 
     println!("open_path = {:?}", open_path);
+    Ok(())
 
 }
 
