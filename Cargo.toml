@@ -1,0 +1,4 @@
+[package]
+name = "cargo-open"
+version = "0.1.0"
+authors = ["Carol Nichols <carol.nichols@gmail.com>"]
