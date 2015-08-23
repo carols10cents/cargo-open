@@ -4,7 +4,9 @@ extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
 use cargo::core::{Resolve, SourceId, PackageId};
+use cargo::util::hex;
 
+use std::env;
 use std::path::{Path, PathBuf};
 
 fn main() {
@@ -44,7 +46,31 @@ fn main() {
 
 
     println!("pkgid = {:?}", pkgid);
-    println!("pkgid.source_id() = {:?}", pkgid.source_id());
+    println!("name = {}, version = {}", pkgid.name(), pkgid.version());
+
+    let hash = hex::short_hash(pkgid.source_id());
+    println!("hash = {}", hash);
+
+    let ident = pkgid.source_id().url().host().unwrap().to_string();
+    println!("ident = {}", ident);
+
+    let part = format!("{}-{}", ident, hash);
+    println!("part = {}", part);
+
+    let dest = format!("{}-{}", pkgid.name(), pkgid.version());
+
+    let cwd = env::current_dir().ok().unwrap();
+
+    let cargo_home = env::var_os("CARGO_HOME").map(|home| {
+        cwd.join(home)
+    });
+    let user_home = env::home_dir().map(|p| p.join(".cargo")).unwrap();
+    let home_path = cargo_home.unwrap_or(user_home);
+
+
+    let open_path = home_path.join("registry").join("src").join(&part).join(&dest);
+
+    println!("open_path = {:?}", open_path);
 
 }
 
