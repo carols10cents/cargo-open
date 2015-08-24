@@ -30,13 +30,13 @@ fn main() {
     // Ok to use unwrap here because clap will handle argument errors
     let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
 
-    match cargo_open(crate_name) {
-        Ok(()) => {},
+    match cargo_dir(crate_name) {
+        Ok(path) => println!("{:?}", path),
         Err(why) => panic!("{}", why),
     }
 }
 
-fn cargo_open(crate_name: &str) -> CargoResult<()> {
+fn cargo_dir(crate_name: &str) -> CargoResult<PathBuf> {
     // Load the current project's dependencies from its Cargo.lock.
     let lock_path     = "Cargo.lock";
     let lock_path     = Path::new(&lock_path);
@@ -68,10 +68,7 @@ fn cargo_open(crate_name: &str) -> CargoResult<()> {
     // of https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/sources/registry.rs#L357-L358
     let dest = format!("{}-{}", pkgid.name(), pkgid.version());
 
-    let open_path = src_path.join(&dest);
-
-    println!("open_path = {:?}", open_path);
-    Ok(())
+    Ok(src_path.join(&dest))
 }
 
 fn absolutize(pb: PathBuf) -> PathBuf {
