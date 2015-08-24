@@ -8,6 +8,8 @@ use cargo::util::{hex, CargoResult};
 
 use std::env;
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::ffi::OsString;
 
 fn main() {
     let matches = App::new("cargo-open")
@@ -30,10 +32,27 @@ fn main() {
     // Ok to use unwrap here because clap will handle argument errors
     let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
 
-    match cargo_dir(crate_name) {
-        Ok(path) => println!("{:?}", path),
+    let crate_dir = match cargo_dir(crate_name) {
+        Ok(path) => path,
         Err(why) => panic!("{}", why),
-    }
+    };
+
+    let editor = cargo_editor();
+
+    match Command::new(editor).arg(crate_dir).status() {
+        Ok(_)    => return,
+        Err(why) => panic!("{}", why),
+    };
+}
+
+fn cargo_editor() -> OsString {
+    env::var_os("CARGO_EDITOR").unwrap_or_else(||
+        env::var_os("VISUAL").unwrap_or_else(||
+            env::var_os("EDITOR").expect(
+                "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again."
+            )
+        )
+    )
 }
 
 fn cargo_dir(crate_name: &str) -> CargoResult<PathBuf> {
