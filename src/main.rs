@@ -37,49 +37,41 @@ fn main() {
 }
 
 fn cargo_open(crate_name: &str) -> CargoResult<()> {
-    let lock_path = "Cargo.lock";
-    let lock_path = Path::new(&lock_path);
+    // Load the current project's dependencies from its Cargo.lock.
+    let lock_path     = "Cargo.lock";
+    let lock_path     = Path::new(&lock_path);
     let lock_path_buf = absolutize(lock_path.to_path_buf());
-    let lock_path = lock_path_buf.as_path();
+    let lock_path     = lock_path_buf.as_path();
+    let proj_dir      = lock_path.parent().unwrap();
+    let src_id        = SourceId::for_path(&proj_dir).unwrap();
+    let resolved      = try!(cargo::ops::load_lockfile(&lock_path, &src_id)).unwrap();
 
-    let proj_dir = lock_path.parent().unwrap(); // TODO: check for None
-    let src_id = SourceId::for_path(&proj_dir).unwrap();
-    println!("src_id = {:?}", src_id);
+    // Look up the crate we're interested in that the current project is using
+    let pkgid = try!(resolved.query(crate_name));
 
-    let resolved = cargo::ops::load_lockfile(&lock_path, &src_id).unwrap().expect("Lock file not found.");
+    // Build registry_source_path the same way cargo's Config does as of
+    // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/util/config.rs#L35-L80
+    let cwd                  = env::current_dir().ok().unwrap();
+    let cargo_home           = env::var_os("CARGO_HOME").map(|home| cwd.join(home));
+    let user_home            = env::home_dir().map(|p| p.join(".cargo")).unwrap();
+    let home_path            = cargo_home.unwrap_or(user_home);
+    let registry_source_path = home_path.join("registry").join("src");
 
+    // Build src_path the same way cargo's RegistrySource does as of
+    // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/sources/registry.rs#L232-L238
+    let hash     = hex::short_hash(pkgid.source_id());
+    let ident    = pkgid.source_id().url().host().unwrap().to_string();
+    let part     = format!("{}-{}", ident, hash);
+    let src_path = registry_source_path.join(&part);
 
-    let pkgid = resolved.query(crate_name).ok().unwrap();
-
-
-    println!("pkgid = {:?}", pkgid);
-    println!("name = {}, version = {}", pkgid.name(), pkgid.version());
-
-    let hash = hex::short_hash(pkgid.source_id());
-    println!("hash = {}", hash);
-
-    let ident = pkgid.source_id().url().host().unwrap().to_string();
-    println!("ident = {}", ident);
-
-    let part = format!("{}-{}", ident, hash);
-    println!("part = {}", part);
-
+    // Build the crate's unpacked destination directory the same way cargo's RegistrySource does as
+    // of https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/sources/registry.rs#L357-L358
     let dest = format!("{}-{}", pkgid.name(), pkgid.version());
 
-    let cwd = env::current_dir().ok().unwrap();
-
-    let cargo_home = env::var_os("CARGO_HOME").map(|home| {
-        cwd.join(home)
-    });
-    let user_home = env::home_dir().map(|p| p.join(".cargo")).unwrap();
-    let home_path = cargo_home.unwrap_or(user_home);
-
-
-    let open_path = home_path.join("registry").join("src").join(&part).join(&dest);
+    let open_path = src_path.join(&dest);
 
     println!("open_path = {:?}", open_path);
     Ok(())
-
 }
 
 fn absolutize(pb: PathBuf) -> PathBuf {
