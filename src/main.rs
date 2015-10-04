@@ -45,7 +45,7 @@ fn main() {
     };
 }
 
-fn cargo_editor() -> OsString {
+pub fn cargo_editor() -> OsString {
     env::var_os("CARGO_EDITOR").unwrap_or_else(||
         env::var_os("VISUAL").unwrap_or_else(||
             env::var_os("EDITOR").expect(
@@ -101,23 +101,57 @@ fn absolutize(pb: PathBuf) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
 
     #[test]
     fn check_env_editor() {
-        let editor: Option<&'static str> = option_env!("EDITOR");
-        assert!(editor != None);
+        let editor = "some_editor";
+        assert_eq!(editor, cargo_editor().to_str().unwrap());
     }
 
     #[test]
     fn check_env_cargo_editor() {
-        let cargo_editor: Option<&'static str> = option_env!("CARGO_EDITOR");
-        assert_eq!(cargo_editor, None);
+        let cargo_editor_val = "some_cargo_editor";
+        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
     }
 
     #[test]
     fn check_env_visual() {
-        let visual: Option<&'static str> = option_env!("VISUAL");
-        assert_eq!(visual, None);
+        let visual = "some_visual";
+        assert_eq!(visual, cargo_editor().to_str().unwrap());
+    }
+
+    #[test]
+    fn prefer_cargo_editor_over_visual() {
+        let cargo_editor_val = "some_cargo_editor";
+        let visual = "some_visual";
+        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+    }
+
+    #[test]
+    fn prefer_visual_over_editor() {
+        let visual = "some_visual";
+        let editor = "some_editor";
+        assert_eq!(editor, cargo_editor().to_str().unwrap());
+    }
+
+    #[test]
+    fn prefer_cargo_editor_over_editor() {
+        let cargo_editor_val = "some_cargo_editor";
+        let editor = "some_editor";
+        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+    }
+
+    #[test]
+    fn prefer_cargo_editor_over_visual_and_editor() {
+        let cargo_editor_val = "some_cargo_editor";
+        let visual = "some_visual";
+        let editor = "some_editor";
+        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again.")]
+    fn error_on_no_env_editor() {
+        cargo_editor();
     }
 }
