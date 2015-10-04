@@ -101,57 +101,84 @@ fn absolutize(pb: PathBuf) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
+    fn setup() {
+        // Reset all env vars to isolate each test
+        env::remove_var("CARGO_EDITOR");
+        env::remove_var("VISUAL");
+        env::remove_var("EDITOR");
+    }
 
     #[test]
     fn check_env_editor() {
+        setup();
         let editor = "some_editor";
+        env::set_var("EDITOR", editor);
         assert_eq!(editor, cargo_editor().to_str().unwrap());
     }
 
     #[test]
     fn check_env_cargo_editor() {
+        setup();
         let cargo_editor_val = "some_cargo_editor";
+        env::set_var("CARGO_EDITOR", cargo_editor_val);
         assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
     }
 
     #[test]
     fn check_env_visual() {
+        setup();
         let visual = "some_visual";
+        env::set_var("VISUAL", visual);
         assert_eq!(visual, cargo_editor().to_str().unwrap());
     }
 
     #[test]
     fn prefer_cargo_editor_over_visual() {
+        setup();
         let cargo_editor_val = "some_cargo_editor";
         let visual = "some_visual";
+        env::set_var("CARGO_EDITOR", cargo_editor_val);
+        env::set_var("VISUAL", visual);
         assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
     }
 
     #[test]
     fn prefer_visual_over_editor() {
+        setup();
         let visual = "some_visual";
         let editor = "some_editor";
-        assert_eq!(editor, cargo_editor().to_str().unwrap());
+        env::set_var("VISUAL", visual);
+        env::set_var("EDITOR", editor);
+        assert_eq!(visual, cargo_editor().to_str().unwrap());
     }
 
     #[test]
     fn prefer_cargo_editor_over_editor() {
+        setup();
         let cargo_editor_val = "some_cargo_editor";
         let editor = "some_editor";
+        env::set_var("CARGO_EDITOR", cargo_editor_val);
+        env::set_var("EDITOR", editor);
         assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
     }
 
     #[test]
     fn prefer_cargo_editor_over_visual_and_editor() {
+        setup();
         let cargo_editor_val = "some_cargo_editor";
         let visual = "some_visual";
         let editor = "some_editor";
+        env::set_var("CARGO_EDITOR", cargo_editor_val);
+        env::set_var("VISUAL", visual);
+        env::set_var("EDITOR", editor);
         assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
     }
 
     #[test]
     #[should_panic(expected = "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again.")]
     fn error_on_no_env_editor() {
+        setup();
         cargo_editor();
     }
 }

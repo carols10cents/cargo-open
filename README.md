@@ -53,6 +53,14 @@ To get around this, either follow the Installation and Usage instructions above 
 
     ./target/release/cargo-open open whatever
 
+## Running tests
+
+Because the tests set and get environment variables, and that isn't guaranteed to be safe to access concurrently, the tests will sometimes fail unless you run them with one thread:
+
+    $ RUST_TEST_THREADS=1 cargo test
+
+Using this command, the tests should always pass.
+
 # TODO
 
 If you'd like to help with any of these and they're not clear, please ask! They're written mostly for my own benefit.
