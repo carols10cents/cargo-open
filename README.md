@@ -65,14 +65,9 @@ Using this command, the tests should always pass.
 
 # TODO
 
-If you'd like to help with any of these and they're not clear, please ask! They're written mostly for my own benefit.
+Please see this repo's issues for things I intend to add someday, and file new issues for anything you think is missing!
 
-* Add tests
-  * 3 env vars, no env vars
-  * different kinds of crate installation -- *, version, github, local path, local override
-  * crate not yet downloaded
-  * dependencies of dependencies
-  * multirust
+I've also labeled issues with "E-easy" for ones that I think would be easy to pick up if you would like to help-- please ask for clarification if any of them are unclear!
 
 # License
 
