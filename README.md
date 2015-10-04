@@ -1,5 +1,7 @@
 # `cargo open`
 
+[![Build Status](https://travis-ci.org/carols10cents/cargo-open.svg?branch=master)](https://travis-ci.org/carols10cents/cargo-open)
+
 A third-party cargo extension to allow you to open a dependent crate in your $EDITOR. Heavily inspired by `bundle open`!
 
 # Compiling
