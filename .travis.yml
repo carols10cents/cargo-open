@@ -19,3 +19,11 @@ branches:
   only:
     - master
 
+addons:
+  apt:
+    sources:
+      - kalakris-cmake
+    packages:
+      - cmake
+      - g++-multilib
+      - lib32stdc++6
