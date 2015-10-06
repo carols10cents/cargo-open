@@ -12,5 +12,5 @@ description = "A third-party cargo extension to allow you to open a dependent cr
 name = "cargo-open"
 
 [dependencies]
-clap = "*"
+clap = "~1.4"
 cargo = "*"
