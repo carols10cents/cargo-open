@@ -3,7 +3,7 @@ extern crate clap;
 extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
-use cargo::core::SourceId;
+use cargo::core::{SourceId};
 use cargo::util::{hex, CargoResult};
 
 use std::env;
@@ -26,11 +26,25 @@ fn main() {
               .help("The name of the crate you would like to open")
               .required(true)
               .index(1)))
-        .settings(&[AppSettings::SubcommandRequired])
+        .arg(Arg::with_name("CRATE")
+              .help("The name of the crate you would like to open")
+              .required(true))
+        .setting(AppSettings::SubcommandsNegateReqs)
         .get_matches();
 
     // Ok to use unwrap here because clap will handle argument errors
-    let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
+    let crate_name = match matches.value_of("CRATE") {
+        Some(c) => {
+            if env::var_os("CARGO_HOME").is_none() {
+                // TODO: set CARGO_HOME env var
+            }
+            c
+        },
+        None => matches.subcommand_matches("open")
+                       .unwrap()
+                       .value_of("CRATE")
+                       .unwrap()
+    };
 
     let crate_dir = match cargo_dir(crate_name) {
         Ok(path) => path,
