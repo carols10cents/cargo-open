@@ -9,7 +9,6 @@ use cargo::util::{hex, human, CargoResult};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::ffi::OsString;
 
 fn main() {
     let matches = App::new("cargo-open")
@@ -48,12 +47,14 @@ fn main() {
     };
 }
 
-pub fn cargo_editor() -> CargoResult<OsString> {
+pub fn cargo_editor() -> CargoResult<String> {
     env::var_os("CARGO_EDITOR").or_else(||
         env::var_os("VISUAL").or_else(||
             env::var_os("EDITOR")
         )
-    ).ok_or(human("Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again."))
+    ).map(|editor| editor.to_string_lossy().into_owned())
+     .and_then(|editor| if !editor.is_empty() { Some(editor) } else { None })
+     .ok_or(human("Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again."))
 }
 
 fn cargo_dir(crate_name: &str) -> CargoResult<PathBuf> {
