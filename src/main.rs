@@ -183,4 +183,14 @@ mod tests {
         setup();
         cargo_editor().unwrap();
     }
+
+    #[test]
+    #[should_panic(expected = "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again.")]
+    fn error_on_empty_editor() {
+        setup();
+        env::set_var("CARGO_EDITOR", "");
+        env::set_var("VISUAL", "");
+        env::set_var("EDITOR", "");
+        cargo_editor().unwrap();
+    }
 }
