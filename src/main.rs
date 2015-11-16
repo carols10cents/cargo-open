@@ -17,10 +17,18 @@ fn main() {
         // We have to lie about our binary name since this will be a third party
         // subcommand for cargo, this trick learned from cargo-outdated
         .bin_name("cargo")
+        .arg(Arg::with_name("verbose")
+          .long("verbose")
+          .short("v")
+          .help("Use verbose output"))
         // We use a subcommand because parsed after `cargo` is sent to the third party plugin
         // which will be interpreted as a subcommand/positional arg by clap
         .subcommand(SubCommand::with_name("open")
             .about("A third-party cargo extension to allow you to open a dependent crate in your $EDITOR")
+            .arg(Arg::with_name("verbose")
+              .long("verbose")
+              .short("v")
+              .help("Use verbose output"))
             .arg(Arg::with_name("CRATE")
               .help("The name of the crate you would like to open")
               .required(true)
@@ -29,9 +37,15 @@ fn main() {
         .get_matches();
 
     // Ok to use unwrap here because clap will handle argument errors
-    let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
+    let subcommand = matches.subcommand_matches("open").unwrap();
+    let crate_name = subcommand.value_of("CRATE").unwrap();
+    let verbosity = if matches.is_present("verbose") || subcommand.is_present("verbose") {
+        Verbosity::Verbose
+    } else {
+        Verbosity::Normal
+    };
 
-    let mut shell = cargo::shell(Verbosity::Normal, ColorConfig::Auto);
+    let mut shell = cargo::shell(verbosity, ColorConfig::Auto);
 
     let crate_dir = match cargo_dir(crate_name) {
         Ok(path) => path,
