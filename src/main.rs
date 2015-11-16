@@ -3,13 +3,12 @@ extern crate clap;
 extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
-use cargo::core::SourceId;
-use cargo::util::{hex, CargoResult};
+use cargo::core::{SourceId, Verbosity, ColorConfig};
+use cargo::util::{hex, human, process_error, CargoResult};
 
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::ffi::OsString;
 
 fn main() {
     let matches = App::new("cargo-open")
@@ -18,10 +17,18 @@ fn main() {
         // We have to lie about our binary name since this will be a third party
         // subcommand for cargo, this trick learned from cargo-outdated
         .bin_name("cargo")
+        .arg(Arg::with_name("verbose")
+          .long("verbose")
+          .short("v")
+          .help("Use verbose output"))
         // We use a subcommand because parsed after `cargo` is sent to the third party plugin
         // which will be interpreted as a subcommand/positional arg by clap
         .subcommand(SubCommand::with_name("open")
             .about("A third-party cargo extension to allow you to open a dependent crate in your $EDITOR")
+            .arg(Arg::with_name("verbose")
+              .long("verbose")
+              .short("v")
+              .help("Use verbose output"))
             .arg(Arg::with_name("CRATE")
               .help("The name of the crate you would like to open")
               .required(true)
@@ -30,29 +37,46 @@ fn main() {
         .get_matches();
 
     // Ok to use unwrap here because clap will handle argument errors
-    let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
+    let subcommand = matches.subcommand_matches("open").unwrap();
+    let crate_name = subcommand.value_of("CRATE").unwrap();
+    let verbosity = if matches.is_present("verbose") || subcommand.is_present("verbose") {
+        Verbosity::Verbose
+    } else {
+        Verbosity::Normal
+    };
+
+    let mut shell = cargo::shell(verbosity, ColorConfig::Auto);
 
     let crate_dir = match cargo_dir(crate_name) {
         Ok(path) => path,
-        Err(why) => panic!("{}", why),
+        Err(why) => {
+            cargo::handle_error(why.into(), &mut shell);
+            unreachable!();
+        },
     };
 
-    let editor = cargo_editor();
-
-    match Command::new(editor).arg(crate_dir).status() {
-        Ok(_)    => return,
-        Err(why) => panic!("{}", why),
+    let editor = match cargo_editor() {
+        Ok(editor) => editor,
+        Err(why) => {
+            cargo::handle_error(why.into(), &mut shell);
+            unreachable!();
+        },
     };
+
+    if let Err(why) = execute(&editor, crate_dir) {
+        cargo::handle_error(why.into(), &mut shell);
+        unreachable!();
+    }
 }
 
-pub fn cargo_editor() -> OsString {
-    env::var_os("CARGO_EDITOR").unwrap_or_else(||
-        env::var_os("VISUAL").unwrap_or_else(||
-            env::var_os("EDITOR").expect(
-                "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again."
-            )
+pub fn cargo_editor() -> CargoResult<String> {
+    env::var_os("CARGO_EDITOR").or_else(||
+        env::var_os("VISUAL").or_else(||
+            env::var_os("EDITOR")
         )
-    )
+    ).map(|editor| editor.to_string_lossy().into_owned())
+     .and_then(|editor| if !editor.is_empty() { Some(editor) } else { None })
+     .ok_or(human("Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again."))
 }
 
 fn cargo_dir(crate_name: &str) -> CargoResult<PathBuf> {
@@ -98,6 +122,18 @@ fn absolutize(pb: PathBuf) -> PathBuf {
     }
 }
 
+fn execute(editor: &str, path: PathBuf) -> CargoResult<()> {
+    let status = Command::new(editor).arg(path).status();
+    let exit = try!(status.map_err(|error| process_error(&format!("Could not execute process: `{}`", editor),
+                                                         Some(error), None, None)));
+    if exit.success() {
+        Ok(())
+    } else {
+        Err(process_error(&format!("Process did not execute successfully: `{}`", editor),
+                          None, Some(&exit), None).into())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,7 +150,7 @@ mod tests {
         setup();
         let editor = "some_editor";
         env::set_var("EDITOR", editor);
-        assert_eq!(editor, cargo_editor().to_str().unwrap());
+        assert_eq!(editor, cargo_editor().unwrap());
     }
 
     #[test]
@@ -122,7 +158,7 @@ mod tests {
         setup();
         let cargo_editor_val = "some_cargo_editor";
         env::set_var("CARGO_EDITOR", cargo_editor_val);
-        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap());
     }
 
     #[test]
@@ -130,7 +166,7 @@ mod tests {
         setup();
         let visual = "some_visual";
         env::set_var("VISUAL", visual);
-        assert_eq!(visual, cargo_editor().to_str().unwrap());
+        assert_eq!(visual, cargo_editor().unwrap());
     }
 
     #[test]
@@ -140,7 +176,7 @@ mod tests {
         let visual = "some_visual";
         env::set_var("CARGO_EDITOR", cargo_editor_val);
         env::set_var("VISUAL", visual);
-        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap());
     }
 
     #[test]
@@ -150,7 +186,7 @@ mod tests {
         let editor = "some_editor";
         env::set_var("VISUAL", visual);
         env::set_var("EDITOR", editor);
-        assert_eq!(visual, cargo_editor().to_str().unwrap());
+        assert_eq!(visual, cargo_editor().unwrap());
     }
 
     #[test]
@@ -160,7 +196,7 @@ mod tests {
         let editor = "some_editor";
         env::set_var("CARGO_EDITOR", cargo_editor_val);
         env::set_var("EDITOR", editor);
-        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap());
     }
 
     #[test]
@@ -172,13 +208,23 @@ mod tests {
         env::set_var("CARGO_EDITOR", cargo_editor_val);
         env::set_var("VISUAL", visual);
         env::set_var("EDITOR", editor);
-        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap());
     }
 
     #[test]
     #[should_panic(expected = "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again.")]
     fn error_on_no_env_editor() {
         setup();
-        cargo_editor();
+        cargo_editor().unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again.")]
+    fn error_on_empty_editor() {
+        setup();
+        env::set_var("CARGO_EDITOR", "");
+        env::set_var("VISUAL", "");
+        env::set_var("EDITOR", "");
+        cargo_editor().unwrap();
     }
 }
