@@ -3,7 +3,7 @@ extern crate clap;
 extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
-use cargo::core::SourceId;
+use cargo::core::{SourceId, Verbosity, ColorConfig};
 use cargo::util::{hex, human, process_error, CargoResult};
 
 use std::env;
@@ -31,20 +31,28 @@ fn main() {
     // Ok to use unwrap here because clap will handle argument errors
     let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
 
+    let mut shell = cargo::shell(Verbosity::Normal, ColorConfig::Auto);
+
     let crate_dir = match cargo_dir(crate_name) {
         Ok(path) => path,
-        Err(why) => panic!("{}", why),
+        Err(why) => {
+            cargo::handle_error(why.into(), &mut shell);
+            unreachable!();
+        },
     };
 
     let editor = match cargo_editor() {
         Ok(editor) => editor,
-        Err(why) => panic!("{}", why),
+        Err(why) => {
+            cargo::handle_error(why.into(), &mut shell);
+            unreachable!();
+        },
     };
 
-    match execute(&editor, crate_dir) {
-        Ok(_)    => return,
-        Err(why) => panic!("{}", why),
-    };
+    if let Err(why) = execute(&editor, crate_dir) {
+        cargo::handle_error(why.into(), &mut shell);
+        unreachable!();
+    }
 }
 
 pub fn cargo_editor() -> CargoResult<String> {
