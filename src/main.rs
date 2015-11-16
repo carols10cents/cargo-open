@@ -4,7 +4,7 @@ extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
 use cargo::core::SourceId;
-use cargo::util::{hex, CargoResult};
+use cargo::util::{hex, human, CargoResult};
 
 use std::env;
 use std::path::{Path, PathBuf};
@@ -37,7 +37,10 @@ fn main() {
         Err(why) => panic!("{}", why),
     };
 
-    let editor = cargo_editor();
+    let editor = match cargo_editor() {
+        Ok(editor) => editor,
+        Err(why) => panic!("{}", why),
+    };
 
     match Command::new(editor).arg(crate_dir).status() {
         Ok(_)    => return,
@@ -45,14 +48,12 @@ fn main() {
     };
 }
 
-pub fn cargo_editor() -> OsString {
-    env::var_os("CARGO_EDITOR").unwrap_or_else(||
-        env::var_os("VISUAL").unwrap_or_else(||
-            env::var_os("EDITOR").expect(
-                "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again."
-            )
+pub fn cargo_editor() -> CargoResult<OsString> {
+    env::var_os("CARGO_EDITOR").or_else(||
+        env::var_os("VISUAL").or_else(||
+            env::var_os("EDITOR")
         )
-    )
+    ).ok_or(human("Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again."))
 }
 
 fn cargo_dir(crate_name: &str) -> CargoResult<PathBuf> {
@@ -114,7 +115,7 @@ mod tests {
         setup();
         let editor = "some_editor";
         env::set_var("EDITOR", editor);
-        assert_eq!(editor, cargo_editor().to_str().unwrap());
+        assert_eq!(editor, cargo_editor().unwrap().to_str().unwrap());
     }
 
     #[test]
@@ -122,7 +123,7 @@ mod tests {
         setup();
         let cargo_editor_val = "some_cargo_editor";
         env::set_var("CARGO_EDITOR", cargo_editor_val);
-        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap().to_str().unwrap());
     }
 
     #[test]
@@ -130,7 +131,7 @@ mod tests {
         setup();
         let visual = "some_visual";
         env::set_var("VISUAL", visual);
-        assert_eq!(visual, cargo_editor().to_str().unwrap());
+        assert_eq!(visual, cargo_editor().unwrap().to_str().unwrap());
     }
 
     #[test]
@@ -140,7 +141,7 @@ mod tests {
         let visual = "some_visual";
         env::set_var("CARGO_EDITOR", cargo_editor_val);
         env::set_var("VISUAL", visual);
-        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap().to_str().unwrap());
     }
 
     #[test]
@@ -150,7 +151,7 @@ mod tests {
         let editor = "some_editor";
         env::set_var("VISUAL", visual);
         env::set_var("EDITOR", editor);
-        assert_eq!(visual, cargo_editor().to_str().unwrap());
+        assert_eq!(visual, cargo_editor().unwrap().to_str().unwrap());
     }
 
     #[test]
@@ -160,7 +161,7 @@ mod tests {
         let editor = "some_editor";
         env::set_var("CARGO_EDITOR", cargo_editor_val);
         env::set_var("EDITOR", editor);
-        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap().to_str().unwrap());
     }
 
     #[test]
@@ -172,13 +173,13 @@ mod tests {
         env::set_var("CARGO_EDITOR", cargo_editor_val);
         env::set_var("VISUAL", visual);
         env::set_var("EDITOR", editor);
-        assert_eq!(cargo_editor_val, cargo_editor().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap().to_str().unwrap());
     }
 
     #[test]
     #[should_panic(expected = "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again.")]
     fn error_on_no_env_editor() {
         setup();
-        cargo_editor();
+        cargo_editor().unwrap();
     }
 }
