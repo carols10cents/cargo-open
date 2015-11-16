@@ -150,7 +150,7 @@ mod tests {
         setup();
         let editor = "some_editor";
         env::set_var("EDITOR", editor);
-        assert_eq!(editor, cargo_editor().unwrap().to_str().unwrap());
+        assert_eq!(editor, cargo_editor().unwrap());
     }
 
     #[test]
@@ -158,7 +158,7 @@ mod tests {
         setup();
         let cargo_editor_val = "some_cargo_editor";
         env::set_var("CARGO_EDITOR", cargo_editor_val);
-        assert_eq!(cargo_editor_val, cargo_editor().unwrap().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap());
     }
 
     #[test]
@@ -166,7 +166,7 @@ mod tests {
         setup();
         let visual = "some_visual";
         env::set_var("VISUAL", visual);
-        assert_eq!(visual, cargo_editor().unwrap().to_str().unwrap());
+        assert_eq!(visual, cargo_editor().unwrap());
     }
 
     #[test]
@@ -176,7 +176,7 @@ mod tests {
         let visual = "some_visual";
         env::set_var("CARGO_EDITOR", cargo_editor_val);
         env::set_var("VISUAL", visual);
-        assert_eq!(cargo_editor_val, cargo_editor().unwrap().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap());
     }
 
     #[test]
@@ -186,7 +186,7 @@ mod tests {
         let editor = "some_editor";
         env::set_var("VISUAL", visual);
         env::set_var("EDITOR", editor);
-        assert_eq!(visual, cargo_editor().unwrap().to_str().unwrap());
+        assert_eq!(visual, cargo_editor().unwrap());
     }
 
     #[test]
@@ -196,7 +196,7 @@ mod tests {
         let editor = "some_editor";
         env::set_var("CARGO_EDITOR", cargo_editor_val);
         env::set_var("EDITOR", editor);
-        assert_eq!(cargo_editor_val, cargo_editor().unwrap().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap());
     }
 
     #[test]
@@ -208,7 +208,7 @@ mod tests {
         env::set_var("CARGO_EDITOR", cargo_editor_val);
         env::set_var("VISUAL", visual);
         env::set_var("EDITOR", editor);
-        assert_eq!(cargo_editor_val, cargo_editor().unwrap().to_str().unwrap());
+        assert_eq!(cargo_editor_val, cargo_editor().unwrap());
     }
 
     #[test]
