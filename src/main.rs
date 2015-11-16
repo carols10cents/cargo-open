@@ -4,7 +4,7 @@ extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
 use cargo::core::SourceId;
-use cargo::util::{hex, human, CargoResult};
+use cargo::util::{hex, human, process_error, CargoResult};
 
 use std::env;
 use std::path::{Path, PathBuf};
@@ -41,7 +41,7 @@ fn main() {
         Err(why) => panic!("{}", why),
     };
 
-    match Command::new(editor).arg(crate_dir).status() {
+    match execute(&editor, crate_dir) {
         Ok(_)    => return,
         Err(why) => panic!("{}", why),
     };
@@ -97,6 +97,18 @@ fn absolutize(pb: PathBuf) -> PathBuf {
         pb
     } else {
         std::env::current_dir().unwrap().join(&pb.as_path()).clone()
+    }
+}
+
+fn execute(editor: &str, path: PathBuf) -> CargoResult<()> {
+    let status = Command::new(editor).arg(path).status();
+    let exit = try!(status.map_err(|error| process_error(&format!("Could not execute process: `{}`", editor),
+                                                         Some(error), None, None)));
+    if exit.success() {
+        Ok(())
+    } else {
+        Err(process_error(&format!("Process did not execute successfully: `{}`", editor),
+                          None, Some(&exit), None).into())
     }
 }
 
