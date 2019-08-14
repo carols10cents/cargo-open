@@ -3,7 +3,9 @@ extern crate clap;
 extern crate cargo;
 
 use clap::{Arg, App, AppSettings, SubCommand};
-use cargo::core::SourceId;
+use cargo::core::Workspace as CargoWorkspace;
+use cargo::util::config::Config as CargoConfig;
+use cargo::ops::load_pkg_lockfile as load_cargo_lockfile;
 use cargo::util::{hex, CargoResult};
 
 use std::env;
@@ -33,7 +35,11 @@ fn main() {
     let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
 
     let crate_dir = match cargo_dir(crate_name) {
-        Ok(path) => path,
+        Ok(Some(path)) => path,
+        Ok(None) => {
+            println!("Not in a cargo-managed project, or crate '{}' not found", crate_name);
+            return;
+        },
         Err(why) => panic!("{}", why),
     };
 
@@ -55,18 +61,23 @@ pub fn cargo_editor() -> OsString {
     )
 }
 
-fn cargo_dir(crate_name: &str) -> CargoResult<PathBuf> {
-    // Load the current project's dependencies from its Cargo.lock.
-    let lock_path     = "Cargo.lock";
-    let lock_path     = Path::new(&lock_path);
-    let lock_path_buf = absolutize(lock_path.to_path_buf());
-    let lock_path     = lock_path_buf.as_path();
-    let proj_dir      = lock_path.parent().unwrap();
-    let src_id        = SourceId::for_path(&proj_dir).unwrap();
-    let resolved      = try!(cargo::ops::load_lockfile(&lock_path, &src_id)).unwrap();
+fn cargo_dir(crate_name: &str) -> CargoResult<Option<PathBuf>> {
+    // Load the current project's dependencies from its Cargo manifest
+    let manifest_path     = "Cargo.toml";
+    let manifest_path     = Path::new(&manifest_path);
+    let manifest_path_buf = absolutize(manifest_path.to_path_buf());
+    let manifest_path     = manifest_path_buf.as_path();
+
+    let cargo_config = CargoConfig::default().unwrap();
+    let workspace = CargoWorkspace::new(&manifest_path, &cargo_config)?;
+
+    let resolved = match load_cargo_lockfile(&workspace)? {
+        Some(r) => r,
+        None => return Ok(None),
+    };
 
     // Look up the crate we're interested in that the current project is using
-    let pkgid = try!(resolved.query(crate_name));
+    let pkgid = resolved.query(crate_name)?;
 
     // Build registry_source_path the same way cargo's Config does as of
     // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/util/config.rs#L35-L80
@@ -87,7 +98,7 @@ fn cargo_dir(crate_name: &str) -> CargoResult<PathBuf> {
     // of https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/sources/registry.rs#L357-L358
     let dest = format!("{}-{}", pkgid.name(), pkgid.version());
 
-    Ok(src_path.join(&dest))
+    Ok(Some(src_path.join(&dest)))
 }
 
 fn absolutize(pb: PathBuf) -> PathBuf {
