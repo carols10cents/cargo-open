@@ -89,7 +89,7 @@ fn cargo_dir(crate_name: &str) -> CargoResult<Option<PathBuf>> {
 
     // Build registry_source_path the same way cargo's Config does as of
     // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/util/config.rs#L35-L80
-    let cwd = try!(env::current_dir());
+    let cwd = env::current_dir()?;
     let cargo_home = env::var_os("CARGO_HOME").map(|home| cwd.join(home));
     let user_home = dirs::home_dir().map(|p| p.join(".cargo")).unwrap();
     let home_path = cargo_home.unwrap_or(user_home);
