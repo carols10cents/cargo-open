@@ -14,3 +14,4 @@ name = "cargo-open"
 [dependencies]
 clap = "2.33"
 cargo = "0.37.0"
+dirs = "2.0"
