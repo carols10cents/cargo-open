@@ -3,16 +3,16 @@ extern crate clap;
 extern crate cargo;
 extern crate dirs;
 
-use clap::{Arg, App, AppSettings, SubCommand};
 use cargo::core::Workspace as CargoWorkspace;
-use cargo::util::config::Config as CargoConfig;
 use cargo::ops::load_pkg_lockfile as load_cargo_lockfile;
+use cargo::util::config::Config as CargoConfig;
 use cargo::util::{hex, CargoResult};
+use clap::{App, AppSettings, Arg, SubCommand};
 
 use std::env;
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::ffi::OsString;
 
 fn main() {
     let matches = App::new("cargo-open")
@@ -33,21 +33,28 @@ fn main() {
         .get_matches();
 
     // Ok to use unwrap here because clap will handle argument errors
-    let crate_name = matches.subcommand_matches("open").unwrap().value_of("CRATE").unwrap();
+    let crate_name = matches
+        .subcommand_matches("open")
+        .unwrap()
+        .value_of("CRATE")
+        .unwrap();
 
     let crate_dir = match cargo_dir(crate_name) {
         Ok(Some(path)) => path,
         Ok(None) => {
-            println!("Not in a cargo-managed project, or crate '{}' not found", crate_name);
+            println!(
+                "Not in a cargo-managed project, or crate '{}' not found",
+                crate_name
+            );
             return;
-        },
+        }
         Err(why) => panic!("{}", why),
     };
 
     let editor = cargo_editor();
 
     match Command::new(editor).arg(crate_dir).status() {
-        Ok(_)    => return,
+        Ok(_) => return,
         Err(why) => panic!("{}", why),
     };
 }
@@ -64,10 +71,10 @@ pub fn cargo_editor() -> OsString {
 
 fn cargo_dir(crate_name: &str) -> CargoResult<Option<PathBuf>> {
     // Load the current project's dependencies from its Cargo manifest
-    let manifest_path     = "Cargo.toml";
-    let manifest_path     = Path::new(&manifest_path);
+    let manifest_path = "Cargo.toml";
+    let manifest_path = Path::new(&manifest_path);
     let manifest_path_buf = absolutize(manifest_path.to_path_buf());
-    let manifest_path     = manifest_path_buf.as_path();
+    let manifest_path = manifest_path_buf.as_path();
 
     let cargo_config = CargoConfig::default().unwrap();
     let workspace = CargoWorkspace::new(&manifest_path, &cargo_config)?;
@@ -82,17 +89,17 @@ fn cargo_dir(crate_name: &str) -> CargoResult<Option<PathBuf>> {
 
     // Build registry_source_path the same way cargo's Config does as of
     // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/util/config.rs#L35-L80
-    let cwd                  = try!(env::current_dir());
-    let cargo_home           = env::var_os("CARGO_HOME").map(|home| cwd.join(home));
-    let user_home            = dirs::home_dir().map(|p| p.join(".cargo")).unwrap();
-    let home_path            = cargo_home.unwrap_or(user_home);
+    let cwd = try!(env::current_dir());
+    let cargo_home = env::var_os("CARGO_HOME").map(|home| cwd.join(home));
+    let user_home = dirs::home_dir().map(|p| p.join(".cargo")).unwrap();
+    let home_path = cargo_home.unwrap_or(user_home);
     let registry_source_path = home_path.join("registry").join("src");
 
     // Build src_path the same way cargo's RegistrySource does as of
     // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/sources/registry.rs#L232-L238
-    let hash     = hex::short_hash(&pkgid.source_id());
-    let ident    = pkgid.source_id().url().host().unwrap().to_string();
-    let part     = format!("{}-{}", ident, hash);
+    let hash = hex::short_hash(&pkgid.source_id());
+    let ident = pkgid.source_id().url().host().unwrap().to_string();
+    let part = format!("{}-{}", ident, hash);
     let src_path = registry_source_path.join(&part);
 
     // Build the crate's unpacked destination directory the same way cargo's RegistrySource does as
@@ -188,7 +195,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again.")]
+    #[should_panic(
+        expected = "Cannot find an editor. Please specify one of $CARGO_EDITOR, $VISUAL, or $EDITOR and try again."
+    )]
     fn error_on_no_env_editor() {
         setup();
         cargo_editor();
