@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate clap;
-extern crate cargo;
-extern crate dirs;
+
+use dirs;
 
 use cargo::core::Workspace as CargoWorkspace;
 use cargo::ops::load_pkg_lockfile as load_cargo_lockfile;
